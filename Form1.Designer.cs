@@ -50,7 +50,9 @@
             poodBtn = new Button();
             textBox1 = new TextBox();
             kat_box = new ComboBox();
+            dataGridView1 = new DataGridView();
             ((System.ComponentModel.ISupportInitialize)toode_pb).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)dataGridView1).BeginInit();
             SuspendLayout();
             // 
             // toode_pb
@@ -61,7 +63,6 @@
             toode_pb.Size = new Size(557, 335);
             toode_pb.TabIndex = 0;
             toode_pb.TabStop = false;
-            toode_pb.Click += pictureBox1_Click;
             // 
             // toodeLbl
             // 
@@ -71,7 +72,6 @@
             toodeLbl.Size = new Size(43, 15);
             toodeLbl.TabIndex = 1;
             toodeLbl.Text = "Toode:";
-            toodeLbl.Click += label1_Click;
             // 
             // kogusLbl
             // 
@@ -129,7 +129,7 @@
             lisakategorBtn.TabIndex = 9;
             lisakategorBtn.Text = "Lisa kategooriat";
             lisakategorBtn.UseVisualStyleBackColor = true;
-            lisakategorBtn.Click += button1_Click;
+            lisakategorBtn.Click += lisaBtn_Click;
             // 
             // kustutakategorBtn
             // 
@@ -149,6 +149,7 @@
             lisaBtn.TabIndex = 11;
             lisaBtn.Text = "Lisa";
             lisaBtn.UseVisualStyleBackColor = true;
+            lisaBtn.Click += lisaBtn_Click_1;
             // 
             // uuendaBtn
             // 
@@ -176,7 +177,6 @@
             puhastaBtn.TabIndex = 14;
             puhastaBtn.Text = "Puhasta";
             puhastaBtn.UseVisualStyleBackColor = true;
-            puhastaBtn.Click += button6_Click;
             // 
             // otsifailBtn
             // 
@@ -186,7 +186,7 @@
             otsifailBtn.TabIndex = 15;
             otsifailBtn.Text = "Otsi fail";
             otsifailBtn.UseVisualStyleBackColor = true;
-            otsifailBtn.Click += button7_Click;
+            otsifailBtn.Click += otsifailBtn_Click;
             // 
             // makstaBtn
             // 
@@ -248,11 +248,23 @@
             kat_box.Size = new Size(139, 23);
             kat_box.TabIndex = 22;
             // 
+            // dataGridView1
+            // 
+            dataGridView1.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            dataGridView1.Location = new Point(12, 459);
+            dataGridView1.Name = "dataGridView1";
+            dataGridView1.Size = new Size(1047, 156);
+            dataGridView1.TabIndex = 23;
+            dataGridView1.CellContentClick += dataGridView1_CellContentClick;
+            dataGridView1.CellMouseEnter += dataGridView1_CellMouseEnter;
+            dataGridView1.CellMouseLeave += dataGridView1_CellMouseLeave;
+            // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(1094, 627);
+            Controls.Add(dataGridView1);
             Controls.Add(kat_box);
             Controls.Add(textBox1);
             Controls.Add(poodBtn);
@@ -278,6 +290,7 @@
             Name = "Form1";
             Text = "Form1";
             ((System.ComponentModel.ISupportInitialize)toode_pb).EndInit();
+            ((System.ComponentModel.ISupportInitialize)dataGridView1).EndInit();
             ResumeLayout(false);
             PerformLayout();
         }
@@ -306,5 +319,6 @@
         private Button poodBtn;
         private TextBox textBox1;
         private ComboBox kat_box;
+        private DataGridView dataGridView1;
     }
 }

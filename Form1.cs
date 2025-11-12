@@ -1,140 +1,286 @@
-
-using Microsoft.VisualBasic;
-using System.Data;
+﻿using System.Data;
 using System.Data.SqlClient;
-using System.Xml.Linq;
 
 namespace WinFormsApp1
 {
     public partial class Form1 : Form
     {
         SqlConnection connect = new SqlConnection(
-       @"Data Source=(LocalDB)\MSSQLLocalDB;AttachDbFilename=C:\Users\opilane\source\repos\WinFormsApp1\tooded_DB.mdf;Integrated Security=True");
+            @"Data Source=(localdb)\MSSQLLocalDB;Initial Catalog=toodeDB;Integrated Security=True");
 
         SqlCommand command;
         SqlDataAdapter adapter_toode, adapter_kategooria;
+
+        OpenFileDialog open;
+        byte[] imageData;
+
         public Form1()
         {
-
             InitializeComponent();
             NaitaKategooriad();
+            NaitaAndmed();
         }
 
-        private void pictureBox1_Click(object sender, EventArgs e)
+        // === ДОБАВЛЕНИЕ КАТЕГОРИИ ===
+        private void lisaBtn_Click(object sender, EventArgs e)
         {
+            bool olemas = kat_box.Items.Cast<object>().Any(item => item.ToString() == kat_box.Text);
 
-        }
-
-        private void label1_Click(object sender, EventArgs e)
-        {
-
-        }
-
-
-        private void textBox3_TextChanged(object sender, EventArgs e)
-        {
-
-        }
-
-        SaveFileDialog save;
-        OpenFileDialog open;
-        private void otsifailBtn_Click(object sender, EventArgs e)
-        {
-            open = new OpenFileDialog();
-            open.InitialDirectory = "C:\\Users\\opilane\\source\\repos\\WinFormsApp1\\images";
-            open.Multiselect = true;
-            open.Filter = "Image Files (*.png;*.jpg;*.jpeg)|*.png;*.jpg;*.jpeg|All files (*.*)|*.*";
-            if (open.ShowDialog() == DialogResult.OK && toodeTextB.Text != null)
+            if (!olemas && !string.IsNullOrWhiteSpace(kat_box.Text))
             {
-                save = new SaveFileDialog();
-                save.InitialDirectory = "C:\\Users\\opilane\\source\\repos\\WinFormsApp1\\images";
-                save.FileName = toodeTextB.Text;
-                if (save.ShowDialog() == DialogResult.OK && toodeTextB.Text != null)
+                try
                 {
-                    File.Copy(open.FileName, save.FileName);
-                    toode_pb.Image = Image.FromFile(save.FileName);
+                    connect.Open();
+                    command = new SqlCommand("INSERT INTO Kategooria (Kategooria_nimetus) VALUES (@kat)", connect);
+                    command.Parameters.AddWithValue("@kat", kat_box.Text);
+                    command.ExecuteNonQuery();
+                    connect.Close();
+
+                    MessageBox.Show("Kategooria lisatud!");
+                    NaitaKategooriad();
                 }
-                else
+                catch (Exception ex)
                 {
-                    MessageBox.Show("Palun sisesta toote nimi!");
+                    MessageBox.Show("Viga: " + ex.Message);
+                    if (connect.State == ConnectionState.Open) connect.Close();
                 }
-            }
-        }
-
-        private void button6_Click(object sender, EventArgs e)
-        {
-
-        }
-
-        private void button1_Click(object sender, EventArgs e)
-        {
-            bool on = false;
-            foreach (var item in kat_box.Items)
-            {
-                if (item.ToString() == kat_box.Text)
-                {
-                    on = true;
-                }
-            }
-            if (on == false)
-            {
-                connect.Open();
-                command = new SqlCommand("INSERT INTO Kategooria (Kategooria_nimetus) VALUES (@kat)", connect);
-                command.Parameters.AddWithValue("kat", kat_box.Text.ToString());
-                command.ExecuteNonQuery();
-                connect.Close();
-                kat_box.Items.Add(kat_box.Text);
-
-                kat_box.Items.Clear();
-                NaitaKategooriad();
             }
             else
             {
-                MessageBox.Show("Sama kategooria on juba olemas!");
+                MessageBox.Show("Sama kategooria on juba olemas või väli on tühi!");
             }
         }
 
-        private void NaitaKategooriad()
+        // === ВЫБОР ФАЙЛА ===
+        private void otsifailBtn_Click(object sender, EventArgs e)
         {
-            connect.Open();
-            adapter_kategooria = new SqlDataAdapter("SELECT Id, kategooria_nimetus FROM Kategooria", connect);
-            DataTable tabel_kat = new DataTable();
-            adapter_kategooria.Fill(tabel_kat);
-            foreach (DataRow item in tabel_kat.Rows)
+            open = new OpenFileDialog();
+            open.InitialDirectory = @"C:\Users\opilane\source\repos\WinFormsApp1\images";
+            open.Filter = "Image Files (*.png;*.jpg;*.jpeg)|*.png;*.jpg;*.jpeg";
 
+            if (open.ShowDialog() == DialogResult.OK)
             {
-                if (!kat_box.Items.Contains(item["kategooria_nimetus"]))
+                string destPath = Path.Combine(
+                    @"C:\Users\opilane\source\repos\WinFormsApp1\images",
+                    toodeTextB.Text + Path.GetExtension(open.FileName));
+
+                try
                 {
-                    kat_box.Items.Add(item["kategooria_nimetus"]);
+                    File.Copy(open.FileName, destPath, true);
+                    toode_pb.Image = Image.FromFile(destPath);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("Ошибка при копировании файла: " + ex.Message);
+                }
+            }
+        }
+
+        // === ДОБАВЛЕНИЕ ТОВАРА ===
+        private void lisaBtn_Click_1(object sender, EventArgs e)
+        {
+            if (string.IsNullOrWhiteSpace(toodeTextB.Text) ||
+                string.IsNullOrWhiteSpace(kogusTextB.Text) ||
+                string.IsNullOrWhiteSpace(hindTextB.Text))
+            {
+                MessageBox.Show("Пожалуйста, заполните все поля!");
+                return;
+            }
+
+            try
+            {
+                connect.Open();
+
+                command = new SqlCommand("SELECT Id FROM Kategooria WHERE Kategooria_nimetus = @kat", connect);
+                command.Parameters.AddWithValue("@kat", kat_box.Text);
+                object result = command.ExecuteScalar();
+
+                if (result == null)
+                {
+                    MessageBox.Show("Категория не найдена!");
+                    connect.Close();
+                    return;
+                }
+
+                int katId = Convert.ToInt32(result);
+
+                if (!int.TryParse(kogusTextB.Text, out int kogus) || !int.TryParse(hindTextB.Text, out int hind))
+                {
+                    MessageBox.Show("Введите числовые значения в поля 'Kogus' и 'Hind'");
+                    connect.Close();
+                    return;
+                }
+
+                command = new SqlCommand(
+                    "INSERT INTO Toodetabel (Toodenimetus, Kogus, Hind, Pilt, Bpilt, Kategooriad) " +
+                    "VALUES (@toode, @kogus, @hind, @pilt, @bpilt, @kat)", connect);
+
+                command.Parameters.AddWithValue("@toode", toodeTextB.Text);
+                command.Parameters.AddWithValue("@kogus", kogus);
+                command.Parameters.AddWithValue("@hind", hind);
+
+                if (open != null && !string.IsNullOrEmpty(open.FileName))
+                {
+                    string extension = Path.GetExtension(open.FileName);
+                    command.Parameters.AddWithValue("@pilt", toodeTextB.Text + extension);
+                    byte[] imageData = File.ReadAllBytes(open.FileName);
+                    command.Parameters.AddWithValue("@bpilt", imageData);
                 }
                 else
                 {
-                    command = new SqlCommand("DELETE FROM Kategooria WHERE kategooria_nimetus=@id", connect);
-                    command.Parameters.AddWithValue("@id", item["Id"].ToString());
-                    command.ExecuteNonQuery();
-
+                    command.Parameters.AddWithValue("@pilt", DBNull.Value);
+                    command.Parameters.AddWithValue("@bpilt", DBNull.Value);
                 }
 
+                command.Parameters.AddWithValue("@kat", katId);
+
+                int rows = command.ExecuteNonQuery();
+                MessageBox.Show($"Добавлено строк: {rows}");
+
+                connect.Close();
+                NaitaAndmed();
+
+                // Очищаем поля после успешного добавления
+                toodeTextB.Clear();
+                kogusTextB.Clear();
+                hindTextB.Clear();
+                kat_box.SelectedIndex = -1;
+                toode_pb.Image = null;
             }
-            connect.Close();
+            catch (Exception ex)
+            {
+                MessageBox.Show("Ошибка при добавлении: " + ex.Message);
+                if (connect.State == ConnectionState.Open)
+                    connect.Close();
+            }
         }
 
+        // === ПОКАЗ КАТЕГОРИЙ ===
+        private void NaitaKategooriad()
+        {
+            connect.Open();
+            adapter_kategooria = new SqlDataAdapter("SELECT Id, Kategooria_nimetus FROM Kategooria", connect);
+            DataTable tabel_kat = new DataTable();
+            adapter_kategooria.Fill(tabel_kat);
+            connect.Close();
+
+            kat_box.Items.Clear();
+            foreach (DataRow item in tabel_kat.Rows)
+            {
+                kat_box.Items.Add(item["Kategooria_nimetus"].ToString());
+            }
+        }
+
+        // === УДАЛЕНИЕ КАТЕГОРИИ ===
         private void kustutakategorBtn_Click(object sender, EventArgs e)
         {
             if (kat_box.SelectedItem != null)
             {
-                connect.Open();
-                command = new SqlCommand("DELETE FROM Kategooria WHERE kategooria_nimetus=@kat", connect);
-                command.Parameters.AddWithValue("@kat", kat_box.SelectedItem.ToString());
-                command.ExecuteNonQuery();
-                connect.Close();
-                kat_box.Items.Remove(kat_box.SelectedItem);
-                NaitaKategooriad();
+                try
+                {
+                    connect.Open();
+                    command = new SqlCommand("DELETE FROM Kategooria WHERE Kategooria_nimetus=@kat", connect);
+                    command.Parameters.AddWithValue("@kat", kat_box.SelectedItem.ToString());
+                    command.ExecuteNonQuery();
+                    connect.Close();
+
+                    MessageBox.Show("Категория удалена!");
+                    NaitaKategooriad();
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("Ошибка при удалении категории: " + ex.Message);
+                    if (connect.State == ConnectionState.Open)
+                        connect.Close();
+                }
             }
             else
             {
-                MessageBox.Show("Palun vali kategooria, mida soovid kustutada!");
-            } 
+                MessageBox.Show("Выберите категорию для удаления!");
+            }
         }
+
+        // === ОТОБРАЖЕНИЕ ДАННЫХ ===
+        public void NaitaAndmed()
+        {
+            connect.Open();
+
+            DataTable dt_toode = new DataTable();
+            adapter_toode = new SqlDataAdapter(
+                "SELECT T.Id, T.Toodenimetus, T.Kogus, T.Hind, T.Pilt, T.Bpilt, " +
+                "K.Kategooria_nimetus AS Kategooria " +
+                "FROM Toodetabel T INNER JOIN Kategooria K ON T.Kategooriad = K.Id", connect);
+
+            adapter_toode.Fill(dt_toode);
+            connect.Close();
+
+            dataGridView1.DataSource = dt_toode;
+
+            if (!dataGridView1.Columns.Contains("Bpilt"))
+                dataGridView1.Columns.Add("Bpilt", "Bpilt");
+
+            dataGridView1.Columns["Bpilt"].Visible = true
+                ;
+        }
+
+        // === Показ картинки при наведении ===
+        private Form popupForm;
+
+        private void dataGridView1_CellMouseEnter(object sender, DataGridViewCellEventArgs e)
+        {
+            if (e.RowIndex >= 0 && e.ColumnIndex >= 0)
+            {
+                // Проверяем, что наведение именно на столбец "Bpilt"
+                if (dataGridView1.Columns[e.ColumnIndex].Name == "Bpilt")
+                {
+                    var cellValue = dataGridView1.Rows[e.RowIndex].Cells["Bpilt"].Value;
+                    if (cellValue is byte[] data && data.Length > 0)
+                    {
+                        using MemoryStream ms = new MemoryStream(data);
+                        Image img = Image.FromStream(ms);
+                        ShowPopupImage(img, e.RowIndex, e.ColumnIndex);
+                    }
+                }
+            }
+        }
+
+        private void dataGridView1_CellMouseLeave(object sender, DataGridViewCellEventArgs e)
+        {
+            popupForm?.Close();
+        }
+
+        private void ShowPopupImage(Image img, int rowIndex, int colIndex)
+        {
+            popupForm?.Close(); // чтобы не открывались дубликаты
+
+            popupForm = new Form
+            {
+                FormBorderStyle = FormBorderStyle.None,
+                Size = new Size(200, 200),
+                StartPosition = FormStartPosition.Manual,
+                TopMost = true,
+                BackColor = Color.Black,
+                Opacity = 0.95
+            };
+
+            PictureBox pb = new PictureBox
+            {
+                Image = img,
+                Dock = DockStyle.Fill,
+                SizeMode = PictureBoxSizeMode.Zoom
+            };
+
+            popupForm.Controls.Add(pb);
+
+            // Определяем позицию рядом с ячейкой
+            Rectangle cellRect = dataGridView1.GetCellDisplayRectangle(colIndex, rowIndex, true);
+            Point cellLocation = dataGridView1.PointToScreen(cellRect.Location);
+            popupForm.Location = new Point(cellLocation.X + cellRect.Width + 10, cellLocation.Y);
+
+            popupForm.Show();
+        }
+
+        // Пустой обработчик, чтобы не было ошибки дизайнера
+        private void dataGridView1_CellContentClick(object sender, DataGridViewCellEventArgs e) { }
     }
 }
