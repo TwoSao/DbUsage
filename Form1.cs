@@ -1,4 +1,4 @@
-﻿using System.Data;
+using System.Data;
 using System.Data.SqlClient;
 
 namespace WinFormsApp1
@@ -20,6 +20,7 @@ namespace WinFormsApp1
             NaitaKategooriad();
             NaitaAndmed();
         }
+        int Id = 0;
 
         // === ДОБАВЛЕНИЕ КАТЕГОРИИ ===
         private void lisaBtn_Click(object sender, EventArgs e)
@@ -60,9 +61,13 @@ namespace WinFormsApp1
 
             if (open.ShowDialog() == DialogResult.OK)
             {
-                string destPath = Path.Combine(
-                    @"C:\Users\opilane\source\repos\WinFormsApp1\images",
-                    toodeTextB.Text + Path.GetExtension(open.FileName));
+                string projectPath = AppDomain.CurrentDomain.BaseDirectory;
+                string imagesFolder = Path.Combine(projectPath, "images");
+
+                // Создаём папку, если её ещё нет
+                Directory.CreateDirectory(imagesFolder);
+
+                string destPath = Path.Combine(imagesFolder, toodeTextB.Text + Path.GetExtension(open.FileName));
 
                 try
                 {
@@ -282,5 +287,95 @@ namespace WinFormsApp1
 
         // Пустой обработчик, чтобы не было ошибки дизайнера
         private void dataGridView1_CellContentClick(object sender, DataGridViewCellEventArgs e) { }
+
+        private void puhastaBtn_Click(object sender, EventArgs e)
+        {
+            toodeTextB.Text = "";
+            kogusTextB.Text = "";
+            hindTextB.Text = "";
+
+            using (FileStream fs = new FileStream(Path.Combine(Path.GetFullPath(@"..\..\..\images"), "Pizza.png"), FileMode.Open, FileAccess.Read))
+            {
+                toode_pb.Image = Image.FromStream(fs);
+            }
+        }
+
+        private void KustutaBtn_Click(object sender, EventArgs e)
+        {
+            if (dataGridView1.SelectedRows.Count == 0)
+            {
+                MessageBox.Show("Palun vali rida, mida kustutada!", "Viga", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            try
+            {
+                // Получаем ID выбранного товара
+                int id = Convert.ToInt32(dataGridView1.SelectedRows[0].Cells["Id"].Value);
+
+                var confirm = MessageBox.Show(
+                    "Kas oled kindel, et soovid selle toote kustutada?",
+                    "Kinnitus",
+                    MessageBoxButtons.YesNo,
+                    MessageBoxIcon.Question);
+
+                if (confirm == DialogResult.Yes)
+                {
+                    using (SqlCommand cmd = new SqlCommand("DELETE FROM Toodetabel WHERE Id = @Id", connect))
+                    {
+                        cmd.Parameters.AddWithValue("@Id", id);
+
+                        connect.Open();
+                        int rows = cmd.ExecuteNonQuery();
+                        connect.Close();
+
+                        if (rows > 0)
+                        {
+                            MessageBox.Show("Toode on edukalt kustutatud!", "Edu", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                            NaitaAndmed();
+
+                            // Очищаем поля
+                            toodeTextB.Clear();
+                            kogusTextB.Clear();
+                            hindTextB.Clear();
+                            kat_box.SelectedIndex = -1;
+                            toode_pb.Image = null;
+                        }
+                        else
+                        {
+                            MessageBox.Show("Toodet ei leitud!", "Viga", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Viga kustutamisel: " + ex.Message, "Viga", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                if (connect.State == ConnectionState.Open)
+                    connect.Close();
+            }
+        }
+
+        private void uuendaBtn_Click(object sender, EventArgs e)
+        {
+            MessageBox.Show("Too");
+            if (toodeTextB.Text != "" && kogusTextB.Text != "" && hindTextB.Text != "" && toode_pb.Image != null)
+            {
+                command = new SqlCommand("Update Toodetabel set Toodenimetus=@toode, Kogus=@kogus, Hind=@hind, Pilt=@pilt Where Id=@Id", connect);
+                connect.Open();
+                command.Parameters.AddWithValue("@Id", Id);
+                command.Parameters.AddWithValue("@toode", toodeTextB.Text);
+                command.Parameters.AddWithValue("@kogus", kogusTextB.Text);
+                command.Parameters.AddWithValue("@hind", hindTextB.Text.Replace(",", "."));
+                string pilt = dataGridView1.SelectedRows[0].Cells["Pilt"].Value.ToString();
+                string file_pilt = toodeTextB.Text + Path.GetExtension(open.FileName);
+                command.Parameters.AddWithValue("@pilt", file_pilt);
+                command.ExecuteNonQuery();
+                connect.Close();
+                NaitaAndmed();
+                MessageBox.Show("Andmed uuendatud");
+
+            }
+        }
     }
 }
