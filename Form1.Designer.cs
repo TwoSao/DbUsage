@@ -1,4 +1,4 @@
-﻿namespace WinFormsApp1
+namespace WinFormsApp1
 {
     partial class Form1
     {
@@ -159,6 +159,7 @@
             uuendaBtn.TabIndex = 12;
             uuendaBtn.Text = "Uuenda";
             uuendaBtn.UseVisualStyleBackColor = true;
+            uuendaBtn.Click += uuendaBtn_Click;
             // 
             // KustutaBtn
             // 
@@ -168,6 +169,7 @@
             KustutaBtn.TabIndex = 13;
             KustutaBtn.Text = "Kustuta";
             KustutaBtn.UseVisualStyleBackColor = true;
+            KustutaBtn.Click += KustutaBtn_Click;
             // 
             // puhastaBtn
             // 
@@ -177,6 +179,7 @@
             puhastaBtn.TabIndex = 14;
             puhastaBtn.Text = "Puhasta";
             puhastaBtn.UseVisualStyleBackColor = true;
+            puhastaBtn.Click += puhastaBtn_Click;
             // 
             // otsifailBtn
             // 
